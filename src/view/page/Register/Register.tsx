@@ -1,6 +1,7 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import {useState} from "react";
+import {useNavigate} from "react-router-dom";
 import {backendApi} from "../../../api.ts";
+
 
 export function Register() {
     const navigate = useNavigate();
@@ -8,23 +9,47 @@ export function Register() {
         name: "",
         email: "",
         password: "",
-        role: "customer"
+        role: "customer",
+        profileImage: "",
     });
 
+    const [imagePreview, setImagePreview] = useState<string | null>(null);
+
+    const [imageFile, setImageFile] = useState<File | null>(null);
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        setForm({ ...form, [e.target.name]: e.target.value });
+        setForm({...form, [e.target.name]: e.target.value});
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
         try {
-              const response =  await backendApi.post("/api/v1/users/register", form);
-              if (response.status === 201) {
-                  alert("Registration successful.");
-                  navigate("/login");
-              }else {
-                  alert("Registration failed.");
-              }
+            if (imageFile) {
+                const formData = new FormData();
+                formData.append("file", imageFile);
+
+                const uploadRes = await backendApi.post("/api/v1/files/upload", formData, {
+                    headers: {
+                        "Content-Type": "multipart/form-data"
+                    }
+                });
+                console.log("uploadRes eke filename eka", uploadRes.data.filename);
+                form.profileImage = uploadRes.data.filename;
+            }
+        } catch (err) {
+            alert("Image upload failed.");
+        }
+
+
+        try {
+            const response = await backendApi.post("/api/v1/users/register", form);
+            if (response.status === 201) {
+                alert("Registration successful.");
+                navigate("/login");
+            } else {
+                alert("Registration failed.");
+            }
         } catch (err) {
             alert("Registration failed.");
         }
@@ -35,6 +60,38 @@ export function Register() {
             <div className="bg-white shadow-md p-8 rounded-lg w-full max-w-md">
                 <h2 className="text-2xl font-bold mb-6 text-center text-blue-600">Register</h2>
                 <form onSubmit={handleSubmit} className="space-y-4">
+
+                    {/* File input and preview side by side */}
+                    <div className="flex items-center gap-4">
+                        {/* File input (50% width) */}
+                        <div className="w-1/2">
+                            <label className="block text-gray-700 font-medium mb-1">Profile Picture</label>
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                        setImageFile(file);
+                                        setImagePreview(URL.createObjectURL(file));
+                                    }
+                                }}
+                                className="w-full border border-gray-300 p-2 rounded"
+                            />
+                        </div>
+
+                        {/* Image preview (right side) */}
+                        {imagePreview && (
+                            <div className="w-1/2 flex justify-center">
+                                <img
+                                    src={imagePreview}
+                                    alt="Preview"
+                                    className="w-24 h-24 object-cover rounded-full border border-gray-300"
+                                />
+                            </div>
+                        )}
+                    </div>
+
                     <input
                         type="text"
                         name="name"
