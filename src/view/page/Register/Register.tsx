@@ -61,9 +61,7 @@ export function Register() {
                 <h2 className="text-2xl font-bold mb-6 text-center text-blue-600">Register</h2>
                 <form onSubmit={handleSubmit} className="space-y-4">
 
-                    {/* File input and preview side by side */}
                     <div className="flex items-center gap-4">
-                        {/* File input (50% width) */}
                         <div className="w-1/2">
                             <label className="block text-gray-700 font-medium mb-1">Profile Picture</label>
                             <input
@@ -80,7 +78,6 @@ export function Register() {
                             />
                         </div>
 
-                        {/* Image preview (right side) */}
                         {imagePreview && (
                             <div className="w-1/2 flex justify-center">
                                 <img
