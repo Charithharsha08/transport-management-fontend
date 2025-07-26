@@ -32,13 +32,11 @@ export function Navbar() {
     return (
         <nav className="bg-blue-600 text-white shadow-md">
             <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-                {/* Left Side: Logo and App Name */}
                 <Link to="/" className="flex items-center text-xl font-bold space-x-2">
                     <img src={logo} alt="logo" className="h-8 w-8 object-cover"/>
                     <span>Transport Manager</span>
                 </Link>
 
-                {/* Center: Navigation Links */}
                 <div className="flex items-center space-x-6">
                     <Link to="/" className="hover:underline">Home</Link>
                     <Link to="/dashboard" className="hover:underline">Dashboard</Link>
@@ -49,7 +47,6 @@ export function Navbar() {
                     <Link to="/login" className="hover:underline">Login</Link>
                 </div>
 
-                {/* Right Side: Profile Image and Name */}
                 {user && (
                     <div className="flex items-center space-x-2">
                         {imageUrl && (
