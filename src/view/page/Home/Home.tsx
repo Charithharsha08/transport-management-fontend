@@ -1,4 +1,34 @@
+import {useEffect} from "react";
+import {getUserFromToken} from "../../../auth/auth.ts";
+import {useDispatch, useSelector} from "react-redux";
+import {logout} from "../../../slices/authSlice.ts";
+import {useNavigate} from "react-router-dom";
+import type {RootState} from "../../../store/store.ts";
+import {setCredentials} from "../../../slices/authSlice.ts";
+
 export function Home() {
+    const user = useSelector((state: RootState) => state.auth.user);
+
+    const dispatch = useDispatch();
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        const accessToken = localStorage.getItem('accessToken');
+
+        if (accessToken) {
+            const userData = getUserFromToken(accessToken);
+            dispatch(setCredentials({
+                user: userData,
+                role: userData.role,
+                token: accessToken
+            }));
+        }
+    }, [dispatch]);
+
+
+
+
+
     return (
         <div className="min-h-screen bg-gray-100">
             <div className="bg-white shadow-md">
@@ -11,18 +41,39 @@ export function Home() {
                             From trip assignments to real-time management, your transport solution starts here.
                         </p>
                         <div className="space-x-4">
-                            <a
-                                href="/login"
-                                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded shadow transition"
-                            >
-                                Login
-                            </a>
-                            <a
-                                href="/register"
-                                className="border border-blue-600 text-blue-600 px-6 py-2 rounded hover:bg-blue-50 transition"
-                            >
-                                Register
-                            </a>
+                            {!user ? (
+                                <>
+                                    <a
+                                        href="/login"
+                                        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded shadow transition"
+                                    >
+                                        Login
+                                    </a>
+                                    <a
+                                        href="/register"
+                                        className="border border-blue-600 text-blue-600 px-6 py-2 rounded hover:bg-blue-50 transition"
+                                    >
+                                        Register
+                                    </a>
+                                </>
+                            ) : (
+                                <a
+                                    href="/home"
+                                    className="border border-blue-600 text-blue-600 px-6 py-2 rounded hover:bg-blue-50 transition"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        const confirmed = window.confirm("Are you sure you want to logout?");
+                                        if (confirmed) {
+                                            dispatch(logout());
+                                            navigate('/');
+                                            window.location.reload();
+                                        }
+                                    }}
+                                >
+                                    logout
+                                </a>
+                            )
+                            }
                         </div>
                     </div>
                     <div className="mt-10 md:mt-0 md:w-1/2 text-center">

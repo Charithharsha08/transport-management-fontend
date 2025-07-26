@@ -1,6 +1,5 @@
 import {Route, Routes} from "react-router-dom";
 import {Home} from "../../page/Home/Home.tsx";
-import {Login} from "../../page/Login/Login.tsx";
 import {Trip} from "../../page/Trip/Trip.tsx";
 import {Vehicle} from "../../page/Vehicle/Vehicle.tsx";
 import {Driver} from "../../page/Driver/Driver.tsx";
@@ -14,7 +13,6 @@ export function MainContent() {
                 <Route path="/*" element={<Home/>}></Route>
                 <Route path="/trips" element={<Trip/>}></Route>
                 <Route path="/vehicles" element={<Vehicle/>}></Route>
-                <Route path="/login" element={<Login/>}></Route>
                 <Route path="/driver" element={<Driver/>}></Route>
                 <Route path="/booking" element={<Booking/>}></Route>
                 <Route path="/dashboard" element={<Dashboard/>}></Route>

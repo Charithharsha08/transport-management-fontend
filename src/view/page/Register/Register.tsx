@@ -17,6 +17,8 @@ export function Register() {
 
     const [imageFile, setImageFile] = useState<File | null>(null);
 
+
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         setForm({...form, [e.target.name]: e.target.value});
     };
