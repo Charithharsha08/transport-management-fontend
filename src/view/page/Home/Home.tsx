@@ -30,10 +30,10 @@ export function Home() {
 
 
     return (
-        <div className="min-h-screen bg-gray-100">
+        <>
             <div className="bg-white shadow-md">
-                <div className="max-w-7xl mx-auto px-6 py-20 flex flex-col md:flex-row items-center justify-between">
-                    <div className="text-center md:text-left md:w-1/2">
+                <div className="flex flex-col md:flex-row items-center justify-between py-20">
+                    <div className="text-center md:text-left pl-8 md:w-1/2">
                         <h1 className="text-4xl font-bold text-gray-800 mb-4 leading-tight">
                             Streamline Your Transport Operations
                         </h1>
@@ -70,10 +70,9 @@ export function Home() {
                                         }
                                     }}
                                 >
-                                    logout
+                                    Logout
                                 </a>
-                            )
-                            }
+                            )}
                         </div>
                     </div>
                     <div className="mt-10 md:mt-0 md:w-1/2 text-center">
@@ -86,7 +85,7 @@ export function Home() {
                 </div>
             </div>
 
-            <div className="max-w-7xl mx-auto px-6 py-16">
+            <div className="py-16">
                 <h2 className="text-2xl font-semibold text-center text-gray-800 mb-12">
                     What You Can Manage
                 </h2>
@@ -113,7 +112,7 @@ export function Home() {
                     </div>
                 </div>
             </div>
-        </div>
+        </>
 
     )
 }

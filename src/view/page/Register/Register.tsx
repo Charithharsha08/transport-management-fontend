@@ -36,7 +36,6 @@ export function Register() {
                         "Content-Type": "multipart/form-data"
                     }
                 });
-                console.log("uploadRes eke filename eka", uploadRes.data.filename);
                 form.profileImage = uploadRes.data.filename;
             }
         } catch (err) {

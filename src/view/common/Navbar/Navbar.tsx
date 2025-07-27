@@ -14,20 +14,12 @@ export function Navbar() {
     useEffect(() => {
         const accessToken = localStorage.getItem('accessToken');
         if (accessToken) {
-            console.log("access token found", accessToken);
             const userData = getUserFromToken(accessToken);
-            console.log("Profile image Name:", userData.profileImage);
-            console.log("user data", userData);
             setUser(userData);
             setImageUrl(`http://localhost:3000/uploads/profile/${userData.profileImage}`);
         }
     }, []);
 
-    useEffect(() => {
-        if (imageUrl) {
-            console.log("image url", imageUrl);
-        }
-    }, [imageUrl]);
 
     return (
         <nav className="bg-blue-600 text-white shadow-md">
@@ -39,12 +31,16 @@ export function Navbar() {
 
                 <div className="flex items-center space-x-6">
                     <Link to="/" className="hover:underline">Home</Link>
+                    {user && user.role === 'admin' && (
                     <Link to="/dashboard" className="hover:underline">Dashboard</Link>
+                    )}
                     <Link to="/booking" className="hover:underline">Bookings</Link>
                     <Link to="/driver" className="hover:underline">Drivers</Link>
                     <Link to="/trips" className="hover:underline">Trips</Link>
                     <Link to="/vehicles" className="hover:underline">Vehicles</Link>
+                    {!user && (
                     <Link to="/login" className="hover:underline">Login</Link>
+                    )}
                 </div>
 
                 {user && (
