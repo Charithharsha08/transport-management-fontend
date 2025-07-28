@@ -16,6 +16,7 @@ export interface PopulatedBookingDTO{
     } | null;
 
     tripId: {
+        _id: string;
         driverId: {
             _id: string;
             name: string;
