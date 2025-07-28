@@ -28,10 +28,15 @@ export function Register() {
 
         try {
             if (imageFile) {
+                const allowedTypes = ["image/jpeg", "image/png", "image/jpg"];
+                if (!allowedTypes.includes(imageFile.type)) {
+                    alert("Invalid image format. Please upload a JPEG, PNG, or JPG file.");
+                    return;
+                }
                 const formData = new FormData();
                 formData.append("file", imageFile);
 
-                const uploadRes = await backendApi.post("/api/v1/files/upload", formData, {
+                const uploadRes = await backendApi.post("/api/v1/files/user", formData, {
                     headers: {
                         "Content-Type": "multipart/form-data"
                     }

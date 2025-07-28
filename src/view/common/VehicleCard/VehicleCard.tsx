@@ -1,11 +1,12 @@
 import type {VehicleData} from "../../../Model/vehicleData.ts";
 import {useEffect, useState} from "react";
 
-type vehicleCardProps = {
-    data: VehicleData
-}
+type VehicleCardProps = {
+    data: VehicleData;
+    onViewDetails: (vehicle: VehicleData) => void;
+};
 
-export function VehicleCard({data}: vehicleCardProps) {
+export function VehicleCard({data, onViewDetails}: VehicleCardProps) {
     const [imageUrl, setImageUrl] = useState<string | null>(null);
 
     useEffect(() => {
@@ -14,42 +15,40 @@ export function VehicleCard({data}: vehicleCardProps) {
         }
     }, [data]);
 
-    function handleBookNow() {
-
-    }
-
-    function viewDetails() {
-
-    }
-
-
     return (
-        <div
-            className="w-[220px] h-auto rounded-2xl shadow-md border border-gray-200 bg-white p-4 hover:shadow-lg transition-all duration-300">
-            <div className="flex flex-col items-center">
-                <img
-                    className="h-[100px] w-[100px] object-cover rounded-full shadow-sm"
-                    src={imageUrl || undefined}
-                    alt={data.name}
-                />
-                <h3 className="mt-3 text-sm font-bold text-gray-800">{data.name}</h3>
-                <p className="text-[11px] text-gray-500 mt-1">Manufacturer: {data.year}</p>
-                <p className="text-[11px] text-gray-500 mt-1">Seats: {data.seats}</p>
+        <div className="max-w-xs w-full bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300">
+            <img
+                className="w-full h-40 object-cover rounded-t-2xl"
+                src={imageUrl || undefined}
+                alt={data.name}
+            />
 
-                <div className={"flex flex-col items-center"}>
+            <div className="p-4">
+                <h3 className="text-lg font-semibold text-gray-800">{data.name}</h3>
+                <p className="text-sm text-gray-500 mt-1">{data.brand} - {data.model}</p>
+
+                <div className="flex items-center justify-between text-xs text-gray-400 mt-3">
+                    <span>Year: {data.year}</span>
+                    <span>Seats: {data.seats}</span>
+                </div>
+
+                <p className="text-[13px] text-gray-600 mt-3 line-clamp-2">{data.description}</p>
+
+                <div className="flex gap-2 mt-5">
                     <button
-                        onClick={handleBookNow}
-                        className="mt-4 w-full py-[6px] bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-md transition-colors duration-200"
+                        onClick={() => {}}
+                        className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-md transition"
                     >
                         Book Now
                     </button>
                     <button
-                        onClick={viewDetails}
-                        className="mt-4 w-full py-[6px] bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-md transition-colors duration-200"
+                        onClick={() => onViewDetails(data)}
+                        className="flex-1 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-medium rounded-md transition"
                     >
-                        View Details
+                        Details
                     </button>
                 </div>
             </div>
-        </div>)
+        </div>
+    );
 }

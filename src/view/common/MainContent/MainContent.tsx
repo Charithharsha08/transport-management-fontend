@@ -9,7 +9,7 @@ import {MainLayout} from "../../components/layout/MainLayout.tsx";
 
 export function MainContent() {
     return (
-        <div className="MainContent flex items-center justify-center w-full h-full">
+        <div className="MainContent w-full">
             <Routes>
                 <Route path="/*" element={<MainLayout><Home/></MainLayout>}></Route>
                 <Route path="/trips" element={<MainLayout><Trip/></MainLayout>}></Route>
