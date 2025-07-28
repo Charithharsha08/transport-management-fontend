@@ -34,6 +34,9 @@ export function Navbar() {
                     {user && user.role === 'admin' && (
                     <Link to="/dashboard" className="hover:underline">Dashboard</Link>
                     )}
+                    {user && user.role === 'customer' && (
+                        <Link to="/available-trips" className="hover:underline">Available Trip</Link>
+                    )}
                     <Link to="/booking" className="hover:underline">Bookings</Link>
                     <Link to="/driver" className="hover:underline">Drivers</Link>
                     <Link to="/trips" className="hover:underline">Trips</Link>
