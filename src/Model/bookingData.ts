@@ -10,12 +10,14 @@ export interface BookingData {
 export interface PopulatedBookingDTO{
     _id?: string;
     customerId: {
+        _id: string;
         name: string;
         email: string;
     } | null;
 
     tripId: {
         driverId: {
+            _id: string;
             name: string;
             email: string;
         };

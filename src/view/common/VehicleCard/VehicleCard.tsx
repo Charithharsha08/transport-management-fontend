@@ -31,9 +31,7 @@ export function VehicleCard({data, onViewDetails}: VehicleCardProps) {
                     <span>Year: {data.year}</span>
                     <span>Seats: {data.seats}</span>
                 </div>
-
-                <p className="text-[13px] text-gray-600 mt-3 line-clamp-2">{data.description}</p>
-
+                
                 <div className="flex gap-2 mt-5">
                     <button
                         onClick={() => {}}

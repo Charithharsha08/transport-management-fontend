@@ -6,11 +6,13 @@ import type { UserData } from "../Model/userData.ts";
 
 interface driverState {
     list: UserData[],
+    loading: boolean,
     error: string | null | undefined,
 }
 
 const initialState: driverState = {
     list: [],
+    loading: false,
     error: null,
 };
 
@@ -29,13 +31,15 @@ const driverSlice = createSlice({
     extraReducers: (builder) => {
         builder
             .addCase(getAllDrivers.pending, (state) => {
-                alert(" Drivers data are still loading please wait");
+                state.loading = true;
                 state.error = null;
             })
             .addCase(getAllDrivers.fulfilled, (state, action) => {
+                state.loading = false;
                 state.list = action.payload;
             })
             .addCase(getAllDrivers.rejected, (state, action) => {
+                state.loading = false;
                 state.error = action.error.message ?? 'Unknown error';
                 alert("Error while loading drivers data" + state.error);
             });

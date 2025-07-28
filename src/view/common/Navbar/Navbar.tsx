@@ -34,12 +34,14 @@ export function Navbar() {
                     {user && user.role === 'admin' && (
                     <Link to="/dashboard" className="hover:underline">Dashboard</Link>
                     )}
-                    {user && user.role === 'customer' && (
+                    {user && user.role === 'driver' && (
                         <Link to="/available-trips" className="hover:underline">Available Trip</Link>
                     )}
                     <Link to="/booking" className="hover:underline">Bookings</Link>
                     <Link to="/driver" className="hover:underline">Drivers</Link>
+                    {user && user.role !== 'driver' && (
                     <Link to="/trips" className="hover:underline">Trips</Link>
+                    )}
                     <Link to="/vehicles" className="hover:underline">Vehicles</Link>
                     {!user && (
                     <Link to="/login" className="hover:underline">Login</Link>

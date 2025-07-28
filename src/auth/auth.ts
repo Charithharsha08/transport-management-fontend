@@ -20,3 +20,4 @@ export const getUserFromToken = (token: string) => {
         return jwtDecode<UserData>(token);
 
 }
+

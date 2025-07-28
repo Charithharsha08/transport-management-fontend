@@ -12,6 +12,7 @@ export function Driver() {
         dispatch(getAllDrivers());
     }, []);
 
+
     return (
         <>
             <h1 className=" text-center text-3xl font-bold mb-8 text-blue-700">Drivers</h1>
