@@ -1,9 +1,8 @@
-import {useEffect, useState, type ChangeEvent} from "react";
+import {useEffect, useState, type ChangeEvent, useRef} from "react";
 import {backendApi} from "../../../api";
 import type {UserData} from "../../../Model/userData"; // driver list
 import type {VehicleData} from "../../../Model/vehicleData";
-import type {TripData} from "../../../Model/trip.data.ts";
-import type {PopulatedBookingDTO} from "../../../Model/bookingData.ts";
+import type {PopulatedTripDTO, TripData} from "../../../Model/trip.data.ts";
 
 export function Trip() {
     const [tripData, setTripData] = useState<TripData>({
@@ -14,10 +13,15 @@ export function Trip() {
         date: "",
         distance: "",
         price: 0,
+        status: "Pending",
     });
+
 
     const [drivers, setDrivers] = useState<UserData[]>([]);
     const [vehicles, setVehicles] = useState<VehicleData[]>([]);
+    const [isUpdating, setIsUpdating] = useState(false);
+    const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
+    const formRef = useRef<HTMLDivElement | null>(null);
 
     const role = localStorage.getItem("role");
 
@@ -34,44 +38,76 @@ export function Trip() {
         }));
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleEdit = (trip: PopulatedTripDTO) => {
+        setTripData({
+            driverId: trip.driverId?._id || "",
+            vehicleId: trip.vehicleId?._id || "",
+            startLocation: trip.startLocation,
+            endLocation: trip.endLocation,
+            date: trip.date.slice(0, 10),
+            distance: trip.distance || "",
+            price: trip.price || 0,
+            status: trip.status || "Pending",
+        });
+        setSelectedTripId(trip._id || null);
+        setIsUpdating(true);
+
+        formRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
+
+    const handleCancel = async (tripId: string) => {
         try {
-            const response = await backendApi.post("/api/v1/trips/save", tripData);
-            if (response.status === 201 || response.status === 200) {
-                alert("Trip added successfully.");
-                setTripData({
-                    driverId: "",
-                    vehicleId: "",
-                    startLocation: "",
-                    endLocation: "",
-                    date: "",
-                    distance: "",
-                    price: 0,
-                });
-            }
+            await backendApi.put(`/api/v1/trips/${tripId}`, { status: "Cancelled" });
+            setTrips(prev => prev.map(t => t._id === tripId ? { ...t, status: "Cancelled" } : t));
         } catch (err) {
-            alert("Error adding trip.");
+            alert("Failed to cancel trip");
         }
     };
 
-    const [bookings, setBookings] = useState<PopulatedBookingDTO[]>([]);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            if (isUpdating && selectedTripId) {
+                await backendApi.put(`/api/v1/trips/update/${selectedTripId}`, tripData);
+                alert("Trip updated successfully");
+            } else {
+                const { status, ...newTripData } = tripData;
+                await backendApi.post("/api/v1/trips/save", newTripData);
+                alert("Trip added successfully");
+            }
+
+            // Reset everything
+            setTripData({ driverId: "", vehicleId: "", startLocation: "", endLocation: "", date: "", distance: "", price: 0 });
+            setIsUpdating(false);
+            setSelectedTripId(null);
+        } catch {
+            alert(isUpdating ? "Failed to update trip" : "Error adding trip");
+        }
+    };
+
+
+    const [trips, setTrips] = useState<PopulatedTripDTO[]>([]);
 
     useEffect(() => {
-        backendApi.get('/api/v1/booking/all')
+        backendApi.get('/api/v1/trips/all')
             .then(response => {
-                setBookings(response.data);
+                console.log('trips', response.data);
+                setTrips(response.data);
             })
             .catch(error => {
                 console.error('Error fetching bookings:', error);
             });
     }, []);
 
+
     return (
         <>
             {role === "admin" && (
                 <div className="max-w-4xl mx-auto bg-white p-8 rounded-lg shadow-lg">
-                    <h1 className="text-3xl font-bold text-blue-700 mb-6 text-center">Add Trip</h1>
+                    <h1 className="text-3xl font-bold text-blue-700 mb-6 text-center">
+                        {isUpdating ? "Update Trip" : "Add Trip"}
+                    </h1>
                     <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <label className="block text-sm font-medium">Driver</label>
@@ -167,12 +203,29 @@ export function Trip() {
                             />
                         </div>
 
-                        <div className="col-span-full text-right">
+                        {isUpdating && (
+                            <div>
+                                <label className="block text-sm font-medium">Status</label>
+                                <select
+                                    name="status"
+                                    value={tripData.status}
+                                    onChange={handleChange}
+                                    className="w-full border border-gray-300 px-3 py-2 rounded-md"
+                                >
+                                    <option value="Pending">Pending</option>
+                                    <option value="Processing">Processing</option>
+                                    <option value="Completed">Completed</option>
+                                </select>
+                            </div>
+                        )}
+
+
+                        <div ref={formRef} className="max-w-4xl mx-auto bg-white p-8 rounded-lg shadow-lg">
                             <button
                                 type="submit"
                                 className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
                             >
-                                Add Trip
+                                {isUpdating ? "Update Trip" : "Add Trip"}
                             </button>
                         </div>
                     </form>
@@ -184,8 +237,6 @@ export function Trip() {
                 <table className="w-full border-collapse bg-white shadow rounded">
                     <thead>
                     <tr className="bg-blue-600 text-white">
-                        <th className="p-3 text-left">Customer</th>
-                        <th className="p-3 text-left">Email</th>
                         <th className="p-3 text-left">Driver</th>
                         <th className="p-3 text-left">Vehicle</th>
                         <th className="p-3 text-left">Route</th>
@@ -196,36 +247,32 @@ export function Trip() {
                     </tr>
                     </thead>
                     <tbody>
-                    {bookings.map((booking, index) => (
-                        <tr key={index} className="border-b hover:bg-gray-50">
-                            <td className="p-3">{booking.customerId?.name || 'N/A'}</td>
-                            <td className="p-3">{booking.customerId?.email || 'N/A'}</td>
-                            <td className="p-3">{booking.tripId?.driverId?.name || 'N/A'}</td>
+                    {trips.map((trip, index) => (
+                        <tr key={trip._id} className="border-b">
+                            <td className="p-3">{trip.driverId?.name}</td>
+                            <td className="p-3">{trip.vehicleId?.brand} {trip.vehicleId?.model}</td>
+                            <td className="p-3">{trip.startLocation} → {trip.endLocation}</td>
+                            <td className="p-3">{new Date(trip.date).toLocaleDateString()}</td>
+                            <td className="p-3">{trip.createdAt ? new Date(trip.createdAt).toLocaleDateString() : "-"}</td>
+                            <td className="p-3">{trip.status}</td>
                             <td className="p-3">
-                                {booking.tripId?.vehicleId
-                                    ? `${booking.tripId.vehicleId.brand} ${booking.tripId.vehicleId.model} (${booking.tripId.vehicleId.name})`
-                                    : 'N/A'}
+                                <button
+                                    onClick={() => handleEdit(trip)}
+                                    className="bg-yellow-500 text-white px-3 py-1 rounded mr-2"
+                                >
+                                    Update
+                                </button>
+                                <button
+                                    onClick={() => handleCancel(trip._id!)}
+                                    className="bg-red-600 text-white px-3 py-1 rounded"
+                                >
+                                    Cancel
+                                </button>
                             </td>
-                            <td className="p-3">
-                                {booking.tripId
-                                    ? `${booking.tripId.startLocation} → ${booking.tripId.endLocation}`
-                                    : 'N/A'}
-                            </td>
-                            <td className="p-3">
-                                {booking.tripId?.date
-                                    ? new Date(booking.tripId.date).toLocaleDateString()
-                                    : 'N/A'}
-                            </td>
-                            <td className="p-3">
-                                {booking.bookingDate
-                                    ? new Date(booking.bookingDate).toLocaleDateString()
-                                    : 'N/A'}
-                            </td>
-                            <td className="p-3">{booking.status}</td>
-                            <td className="p-3">{booking.notes || '-'}</td>
                         </tr>
                     ))}
                     </tbody>
+
                 </table>
             </div>
 
