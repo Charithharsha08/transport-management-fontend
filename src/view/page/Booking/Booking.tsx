@@ -1,10 +1,12 @@
-import { useEffect, useState, type ChangeEvent, useRef } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { backendApi } from "../../../api";
-import type { BookingData, PopulatedBookingDTO } from "../../../Model/bookingData";
-import { getAllTrips } from "../../../slices/TripSlice";
-import type { AppDispatch, RootState } from "../../../store/store";
-import {getAllUsers} from "../../../slices/UserSlices.ts";
+import {useEffect, useState, type ChangeEvent, useRef} from "react";
+import {useDispatch, useSelector} from "react-redux";
+import {backendApi} from "../../../api";
+import type {BookingData, PopulatedBookingDTO} from "../../../Model/bookingData";
+import {getAllTrips} from "../../../slices/TripSlice";
+import type {AppDispatch, RootState} from "../../../store/store";
+import {getAllUsers, getUserByEmail} from "../../../slices/UserSlices.ts";
+import type {UserData} from "../../../Model/userData.ts";
+import {getUserFromToken} from "../../../auth/auth.ts";
 
 export function Booking() {
     const dispatch = useDispatch<AppDispatch>();
@@ -19,25 +21,68 @@ export function Booking() {
     const [isUpdating, setIsUpdating] = useState(false);
     const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
     const formRef = useRef<HTMLDivElement | null>(null);
-
-    const users = useSelector((state: RootState) => state.user.list);
+    const [user, setUser] = useState<UserData | null>(null);
+    const accessToken = localStorage.getItem("accessToken");
+    const {
+        loadingAll,
+        loadingByEmail,
+        errorAll,
+        errorByEmail,
+        list
+    } = useSelector((state: RootState) => state.user);
     const trips = useSelector((state: RootState) => state.trip.list);
+    const [formLoading, setFormLoading] = useState(false);
 
     useEffect(() => {
         dispatch(getAllUsers());
         dispatch(getAllTrips());
-        fetchBookings();
+
+        if (accessToken) {
+            const email = getUserFromToken(accessToken)?.email;
+            console.log("Email:", email);
+
+                dispatch(getUserByEmail(email))
+                    .unwrap()
+                    .then((userData) => {
+                        console.log("Fetched user:", userData);
+                        setUser(userData);
+
+                        if (userData.role === "customer") {
+                            setBookingData((prev) => ({
+                                ...prev,
+                                customerId: userData._id,
+                            }));
+                        }
+
+                        fetchBookings(userData);
+                    })
+                    .catch((err) => {
+                        console.error("Failed to fetch user by email:", err);
+                    });
+
+        }
     }, [dispatch]);
 
-    const fetchBookings = () => {
-        backendApi
-            .get("/api/v1/booking/all")
-            .then((res) => setBookings(res.data))
-            .catch((err) => console.error("Error fetching bookings:", err));
+
+    const fetchBookings = (user: UserData) => {
+        if (accessToken) {
+            if (user?.role === "admin") {
+                backendApi
+                    .get("/api/v1/booking/all")
+                    .then((res) => setBookings(res.data))
+                    .catch((err) => console.error("Error fetching bookings:", err));
+            }
+            if (user?.role === "customer") {
+                backendApi
+                    .get(`/api/v1/booking/all-by-customer/${user._id}`)
+                    .then((res) => setBookings(res.data))
+                    .catch((err) => console.error("Error fetching bookings:", err));
+            }
+        }
     };
 
     const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-        const { name, value } = e.target;
+        const {name, value} = e.target;
         setBookingData((prev) => ({
             ...prev,
             [name]: name === "bookingDate" ? new Date(value) : value,
@@ -54,13 +99,15 @@ export function Booking() {
         });
         setIsUpdating(true);
         setSelectedBookingId(booking._id || null);
-        formRef.current?.scrollIntoView({ behavior: "smooth" });
+        formRef.current?.scrollIntoView({behavior: "smooth"});
     };
 
     const handleCancelBooking = async (bookingId: string) => {
         try {
-            await backendApi.put(`/api/v1/booking/update/${bookingId}`, { status: "Cancelled" });
-            fetchBookings();
+            await backendApi.put(`/api/v1/booking/update/${bookingId}`, {status: "Cancelled"});
+            if (user) {
+                fetchBookings(user)
+            }
             alert("Booking cancelled.");
         } catch {
             alert("Failed to cancel booking.");
@@ -70,6 +117,7 @@ export function Booking() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
+            setFormLoading(true);
             if (isUpdating && selectedBookingId) {
                 await backendApi.put(`/api/v1/booking/update/${selectedBookingId}`, bookingData);
                 alert("Booking updated successfully");
@@ -87,15 +135,29 @@ export function Booking() {
             });
             setIsUpdating(false);
             setSelectedBookingId(null);
-            fetchBookings();
+            if (user) {
+                fetchBookings(user);
+            }
         } catch {
             alert("Error saving booking");
+        } finally {
+            setIsUpdating(false);
         }
     };
+    if (loadingAll || loadingByEmail) {
+        return <p className="text-center text-blue-600 font-semibold text-lg">Loading...</p>;
+    }
 
+    if (errorAll || errorByEmail) {
+        return (
+            <p className="text-center text-red-600 font-semibold text-lg">
+                Error: {errorAll || errorByEmail}
+            </p>
+        );
+    }
     return (
+
         <div className="p-6">
-            {/* Booking Form */}
             <div
                 ref={formRef}
                 className="max-w-3xl mx-auto bg-white p-8 rounded-lg shadow-lg mb-10"
@@ -107,23 +169,25 @@ export function Booking() {
                     onSubmit={handleSubmit}
                     className="grid grid-cols-1 md:grid-cols-2 gap-6"
                 >
-                    <div>
-                        <label className="block text-sm font-medium">Customer</label>
-                        <select
-                            name="customerId"
-                            value={bookingData.customerId}
-                            onChange={handleChange}
-                            required
-                            className="w-full border border-gray-300 px-3 py-2 rounded-md"
-                        >
-                            <option value="">Select Customer</option>
-                            {users.map((user) => (
-                                <option key={user._id} value={user._id}>
-                                    {user.name}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
+                    {user?.role === "admin" && (
+                        <div>
+                            <label className="block text-sm font-medium">Customer</label>
+                            <select
+                                name="customerId"
+                                value={bookingData.customerId}
+                                onChange={handleChange}
+                                required
+                                className="w-full border border-gray-300 px-3 py-2 rounded-md"
+                            >
+                                <option value="">Select Customer</option>
+                                {list.map((user) => (
+                                    <option key={user._id} value={user._id}>
+                                        {user.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
 
                     <div>
                         <label className="block text-sm font-medium">Trip</label>

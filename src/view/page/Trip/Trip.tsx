@@ -6,6 +6,9 @@ import type {AppDispatch, RootState} from "../../../store/store.ts";
 import {getAllDrivers} from "../../../slices/driverSlices.ts";
 import {getAllVehicles} from "../../../slices/vehicleSlices.ts";
 import {getAllTrips} from "../../../slices/TripSlice.ts";
+import {getUserFromToken} from "../../../auth/auth.ts";
+import {getUserByEmail} from "../../../slices/UserSlices.ts";
+import type {UserData} from "../../../Model/userData.ts";
 
 export function Trip() {
     const [tripData, setTripData] = useState<TripData>({
@@ -24,7 +27,9 @@ export function Trip() {
     const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
     const formRef = useRef<HTMLDivElement | null>(null);
 
+    const accessToken = localStorage.getItem("accessToken");
     const role = localStorage.getItem("role");
+    const [user, setUser] = useState<UserData | null>(null);
 
     const driverState = useSelector((state: RootState) => state.driver);
     const vehicleState = useSelector((state: RootState) => state.vehicle);
@@ -34,13 +39,43 @@ export function Trip() {
     const vehicles = vehicleState.list;
     const trips = tripState.list;
 
+    console.log("user", user);
+    console.log("user?._id:", user?._id);
+    console.log("trip.driverId._id:", trips.map(t => t.driverId?._id));
+
+    const [localTrips, setLocalTrips] = useState<PopulatedTripDTO[]>([]);
 
     useEffect(() => {
-        dispatch(getAllDrivers());
-        dispatch(getAllVehicles());
-        dispatch(getAllTrips());
-    }, [dispatch]);
+        if (trips.length > 0) {
+            setLocalTrips(trips);
+        }
+    }, [trips]);
 
+    const pendingTrips = localTrips.filter(
+        (trip) => trip.status === "Pending" && trip.driverId?._id === user?._id
+    );
+
+    const processingTrips = localTrips.filter(
+        (trip) => trip.status === "Processing" && trip.driverId?._id === user?._id
+    );
+
+    useEffect(() => {
+        if (accessToken) {
+            const email = getUserFromToken(accessToken)?.email;
+            dispatch(getUserByEmail(email))
+                .unwrap()
+                .then((userData) => {
+                    console.log("Fetched user:", userData);
+                    setUser(userData);
+                },)
+                .catch((error) => {
+                    console.error("Error fetching user:", error);
+                });
+            dispatch(getAllDrivers());
+            dispatch(getAllVehicles());
+            dispatch(getAllTrips());
+        }
+    }, [dispatch]);
 
     const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const {name, value} = e.target;
@@ -51,7 +86,6 @@ export function Trip() {
     };
 
     const handleEdit = (trip: PopulatedTripDTO) => {
-
         if (driverState.loading) {
             alert("Please wait until drivers are loaded.");
             return;
@@ -73,14 +107,24 @@ export function Trip() {
         formRef.current?.scrollIntoView({behavior: "smooth"});
     };
 
-    const handleCancel = async (tripId: string) => {
+    const handleStatusUpdateUI = async (tripId: string, newStatus: string) => {
         try {
-            await backendApi.put(`/api/v1/trips/update/${selectedTripId}`, {status: "Cancelled"});
-            dispatch(getAllTrips());
+            await backendApi.put(`/api/v1/trips/status/${tripId}`, { status: newStatus });
+
+            setLocalTrips(prev =>
+                prev.map(trip =>
+                    trip._id === tripId
+                        ? newStatus === "Completed"
+                            ? null // Remove completed trip
+                            : { ...trip, status: newStatus }
+                        : trip
+                ).filter(Boolean) as PopulatedTripDTO[]
+            );
         } catch (err) {
-            alert("Failed to cancel trip");
+            alert(`Failed to update trip to ${newStatus}`);
         }
     };
+
 
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -88,15 +132,14 @@ export function Trip() {
         try {
             if (isUpdating && selectedTripId) {
                 await backendApi.put(`/api/v1/trips/update/${selectedTripId}`, tripData);
-                window.location.reload();
                 alert("Trip updated successfully");
+                window.location.reload();
             } else {
                 const {status, ...newTripData} = tripData;
                 await backendApi.post("/api/v1/trips/save", newTripData);
                 alert("Trip added successfully");
             }
 
-            // Reset everything
             setTripData({
                 driverId: "",
                 vehicleId: "",
@@ -104,7 +147,8 @@ export function Trip() {
                 endLocation: "",
                 date: "",
                 distance: "",
-                price: 0
+                price: 0,
+                status: "Pending"
             });
             setIsUpdating(false);
             setSelectedTripId(null);
@@ -112,7 +156,6 @@ export function Trip() {
             alert(isUpdating ? "Failed to update trip" : "Error adding trip");
         }
     };
-
 
 
     return (
@@ -145,7 +188,6 @@ export function Trip() {
                                     ))}
                                 </select>
                             )}
-
                         </div>
 
                         <div>
@@ -246,8 +288,7 @@ export function Trip() {
                             </div>
                         )}
 
-
-                        <div ref={formRef} className="max-w-4xl mx-auto bg-white p-8 rounded-lg shadow-lg">
+                        <div ref={formRef} className="col-span-full">
                             <button
                                 type="submit"
                                 className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
@@ -260,9 +301,8 @@ export function Trip() {
             )}
 
             {role === "admin" && (
-
                 <div className="p-6">
-                    <h2 className="text-2xl font-bold mb-4">Bookings</h2>
+                    <h2 className="text-2xl font-bold mb-4">Trips</h2>
                     <table className="w-full border-collapse bg-white shadow rounded">
                         <thead>
                         <tr className="bg-blue-600 text-white">
@@ -272,11 +312,11 @@ export function Trip() {
                             <th className="p-3 text-left">Trip Date</th>
                             <th className="p-3 text-left">Booking Date</th>
                             <th className="p-3 text-left">Status</th>
-                            <th className="p-3 text-left">Notes</th>
+                            <th className="p-3 text-left">Actions</th>
                         </tr>
                         </thead>
+                        <tbody>
                         {tripState.loading || tripState.error ? (
-                            <tbody>
                             <tr>
                                 <td colSpan={7}>
                                     {tripState.loading ? (
@@ -286,10 +326,8 @@ export function Trip() {
                                     )}
                                 </td>
                             </tr>
-                            </tbody>
                         ) : (
-                            <tbody>
-                            {trips.map((trip, index) => (
+                            trips.map(trip => (
                                 <tr key={trip._id} className="border-b">
                                     <td className="p-3">{trip.driverId?.name}</td>
                                     <td className="p-3">{trip.vehicleId?.brand} {trip.vehicleId?.model}</td>
@@ -305,19 +343,90 @@ export function Trip() {
                                             Update
                                         </button>
                                         <button
-                                            onClick={() => handleCancel(trip._id!)}
+                                            onClick={() => handleStatusUpdateUI(trip._id!, "Cancelled")}
                                             className="bg-red-600 text-white px-3 py-1 rounded"
                                         >
                                             Cancel
                                         </button>
                                     </td>
                                 </tr>
-                            ))}
-                        </tbody>
+                            ))
                         )}
+                        </tbody>
                     </table>
                 </div>
             )}
+
+            {role === "driver" && (
+                <div className="p-6">
+                    <h2 className="text-2xl font-bold mb-4 text-center">Your Trips</h2>
+
+                    {pendingTrips.length === 0 && processingTrips.length === 0 && (
+                        <p className="text-center text-gray-600">You don’t have any trips at the moment.</p>
+                    )}
+
+                    {pendingTrips.length > 0 && (
+                        <div>
+                            <h3 className="text-xl font-semibold mb-2 text-gray-700">Pending Trips</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {pendingTrips.map(trip => (
+                                    <div key={trip._id} className="bg-white shadow-md rounded-lg p-4 border border-gray-200">
+                                        <h3 className="text-lg font-semibold mb-2">{trip.startLocation} → {trip.endLocation}</h3>
+                                        <p><strong>Date:</strong> {new Date(trip.date).toLocaleDateString()}</p>
+                                        <p><strong>Distance:</strong> {trip.distance} km</p>
+                                        <p><strong>Price:</strong> Rs. {trip.price}</p>
+                                        <p><strong>Vehicle:</strong> {trip.vehicleId?.brand} {trip.vehicleId?.model}</p>
+                                        <p className="mt-2"><strong>Status:</strong> <span className="text-blue-600">{trip.status}</span></p>
+
+                                        <div className="flex justify-between mt-4 gap-2">
+                                            <button
+                                                onClick={() => handleStatusUpdateUI(trip._id!, "Cancelled")}
+                                                className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                onClick={() => handleStatusUpdateUI(trip._id!, "Processing")}
+                                                className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
+                                            >
+                                                Processing
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {processingTrips.length > 0 && (
+                        <div className="mt-10">
+                            <h3 className="text-xl font-semibold mb-2 text-gray-700">Processing Trips</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {processingTrips.map(trip => (
+                                    <div key={trip._id} className="bg-white shadow-md rounded-lg p-4 border border-gray-200">
+                                        <h3 className="text-lg font-semibold mb-2">{trip.startLocation} → {trip.endLocation}</h3>
+                                        <p><strong>Date:</strong> {new Date(trip.date).toLocaleDateString()}</p>
+                                        <p><strong>Distance:</strong> {trip.distance} km</p>
+                                        <p><strong>Price:</strong> Rs. {trip.price}</p>
+                                        <p><strong>Vehicle:</strong> {trip.vehicleId?.brand} {trip.vehicleId?.model}</p>
+                                        <p className="mt-2"><strong>Status:</strong> <span className="text-yellow-600">{trip.status}</span></p>
+
+                                        <div className="flex justify-end mt-4">
+                                            <button
+                                                onClick={() => handleStatusUpdateUI(trip._id!, "Completed")}
+                                                className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+                                            >
+                                                Complete
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+
 
         </>
     );

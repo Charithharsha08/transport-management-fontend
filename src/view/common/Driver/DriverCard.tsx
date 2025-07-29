@@ -1,5 +1,6 @@
 import type {UserData} from "../../../Model/userData.ts";
 import {useEffect, useState} from "react";
+import {useNavigate} from "react-router-dom";
 
 
 type driverCardProps = {
@@ -9,6 +10,7 @@ type driverCardProps = {
 
 export function DriverCard({data}: driverCardProps) {
     const [imageUrl, setImageUrl] = useState<string | null>(null);
+    const navigate = useNavigate();
 
 /*
     const dispatch = useDispatch<AppDispatch>();
@@ -22,9 +24,7 @@ export function DriverCard({data}: driverCardProps) {
     }, [data]);
 
     function handleBookNow() {
-       /* dispatch({
-
-        });*/
+       navigate('/trips');
     }
 
 

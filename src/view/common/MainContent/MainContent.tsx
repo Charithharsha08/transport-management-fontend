@@ -6,7 +6,6 @@ import {Driver} from "../../page/Driver/Driver.tsx";
 import {Booking} from "../../page/Booking/Booking.tsx";
 import {Dashboard} from "../../page/DashBoard/DashBoard.tsx";
 import {MainLayout} from "../../components/layout/MainLayout.tsx";
-import {DriversTrips} from "../../page/DriversTrips/DriversTrips.tsx";
 
 export function MainContent() {
     return (
@@ -18,7 +17,6 @@ export function MainContent() {
                 <Route path="/driver" element={<MainLayout><Driver/></MainLayout>}></Route>
                 <Route path="/booking" element={<MainLayout><Booking/></MainLayout>}></Route>
                 <Route path="/dashboard" element={<MainLayout><Dashboard/></MainLayout>}></Route>
-                <Route path="/available-trips" element={<MainLayout><DriversTrips/></MainLayout>}></Route>
             </Routes>
         </div>
 
