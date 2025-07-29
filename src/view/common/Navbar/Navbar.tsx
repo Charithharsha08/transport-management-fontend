@@ -44,6 +44,7 @@ export function Navbar() {
                 </div>
 
                 {user && (
+                    <Link to="/user">
                     <div className="flex items-center space-x-2">
                         {imageUrl && (
                             <img
@@ -54,6 +55,7 @@ export function Navbar() {
                         )}
                         <span>{user.name}</span>
                     </div>
+                    </Link>
                 )}
             </div>
         </nav>
