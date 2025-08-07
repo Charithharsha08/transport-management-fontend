@@ -28,6 +28,9 @@ export function Login() {
             localStorage.setItem('userName', user.name);
             localStorage.setItem('role', user.role);
 
+            const userAgent = navigator.userAgent;
+            const loginTime = new Date().toLocaleString();
+
 
             if (user.role === 'customer' || user.role === 'driver') {
                 alert("Login successful.");
@@ -37,6 +40,16 @@ export function Login() {
                 navigate("/dashboard");
             }
 
+            try {
+                await backendApi.post("/api/v1/email/send-login-notification", {
+                    to: user.email,
+                    subject: "Login Alert",
+                    message: `Successful login detected for your account (${user.name}) at ${loginTime}.`,
+                    userAgent: userAgent,
+                });
+            } catch (emailError) {
+                console.warn("Failed to send login notification email:", emailError);
+            }
         } catch (err) {
             alert("Login failed. Please check your credentials.");
         }

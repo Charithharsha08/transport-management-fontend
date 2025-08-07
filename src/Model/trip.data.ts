@@ -30,8 +30,8 @@ export interface PopulatedTripDTO {
     };
     startLocation: string;
     endLocation: string;
-    date: string; // <-- updated
-    createdAt?: string; // <-- updated
+    date: string;
+    createdAt?: string;
     status?: string;
     distance?: string | null;
     price?: number | null;

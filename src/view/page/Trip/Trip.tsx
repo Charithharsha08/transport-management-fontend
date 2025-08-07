@@ -60,6 +60,10 @@ export function Trip() {
     );
 
     useEffect(() => {
+
+        const today = new Date().toISOString().split("T")[0];
+        setTripData(prev => ({...prev, date: today}));
+
         if (accessToken) {
             const email = getUserFromToken(accessToken)?.email;
             dispatch(getUserByEmail(email))
@@ -77,13 +81,27 @@ export function Trip() {
         }
     }, [dispatch]);
 
+
     const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const {name, value} = e.target;
-        setTripData(prev => ({
-            ...prev,
-            [name]: name === "price" ? Number(value) : value,
-        }));
+
+        if (name === "distance") {
+            const distanceVal = value;
+            const numericDistance = parseFloat(distanceVal);
+            const calculatedPrice = isNaN(numericDistance) ? 0 : numericDistance * 100;
+            setTripData(prev => ({
+                ...prev,
+                distance: distanceVal,
+                price: calculatedPrice
+            }));
+        } else {
+            setTripData(prev => ({
+                ...prev,
+                [name]: name === "price" ? Number(value) : value,
+            }));
+        }
     };
+
 
     const handleEdit = (trip: PopulatedTripDTO) => {
         if (driverState.loading) {
@@ -109,14 +127,14 @@ export function Trip() {
 
     const handleStatusUpdateUI = async (tripId: string, newStatus: string) => {
         try {
-            await backendApi.put(`/api/v1/trips/status/${tripId}`, { status: newStatus });
+            await backendApi.put(`/api/v1/trips/status/${tripId}`, {status: newStatus});
 
             setLocalTrips(prev =>
                 prev.map(trip =>
                     trip._id === tripId
                         ? newStatus === "Completed"
                             ? null // Remove completed trip
-                            : { ...trip, status: newStatus }
+                            : {...trip, status: newStatus}
                         : trip
                 ).filter(Boolean) as PopulatedTripDTO[]
             );
@@ -126,18 +144,39 @@ export function Trip() {
     };
 
 
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
+            const today = new Date().toISOString().split("T")[0];
+
             if (isUpdating && selectedTripId) {
-                await backendApi.put(`/api/v1/trips/update/${selectedTripId}`, tripData);
+                await backendApi.put(`/api/v1/trips/update/${selectedTripId}`, {
+                    ...tripData,
+                    date: today,
+                });
                 alert("Trip updated successfully");
                 window.location.reload();
             } else {
                 const {status, ...newTripData} = tripData;
-                await backendApi.post("/api/v1/trips/save", newTripData);
+                const res = await backendApi.post("/api/v1/trips/save", {
+                    ...newTripData,
+                    date: today,
+                });
                 alert("Trip added successfully");
+
+                try {
+                    await backendApi.post("/api/v1/email/send-trip-assignment", {
+                        to: driverState.list.find(driver => driver._id === tripData.driverId)?.email,
+                        driverName: driverState.list.find(driver => driver._id === tripData.driverId)?.name,
+                        tripId: res.data._id,
+                        startLocation: tripData.startLocation,
+                        endLocation: tripData.endLocation,
+                        date: tripData.date
+                    })
+                } catch (error) {
+                    console.error("Error sending email:", error);
+                }
+
             }
 
             setTripData({
@@ -145,7 +184,7 @@ export function Trip() {
                 vehicleId: "",
                 startLocation: "",
                 endLocation: "",
-                date: "",
+                date: today,
                 distance: "",
                 price: 0,
                 status: "Pending"
@@ -244,6 +283,7 @@ export function Trip() {
                                 type="date"
                                 name="date"
                                 value={tripData.date}
+                                disabled
                                 onChange={handleChange}
                                 className="w-full border border-gray-300 px-3 py-2 rounded-md"
                                 required
@@ -266,6 +306,7 @@ export function Trip() {
                             <input
                                 type="number"
                                 name="price"
+                                readOnly
                                 value={tripData.price}
                                 onChange={handleChange}
                                 className="w-full border border-gray-300 px-3 py-2 rounded-md"
@@ -370,13 +411,15 @@ export function Trip() {
                             <h3 className="text-xl font-semibold mb-2 text-gray-700">Pending Trips</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {pendingTrips.map(trip => (
-                                    <div key={trip._id} className="bg-white shadow-md rounded-lg p-4 border border-gray-200">
+                                    <div key={trip._id}
+                                         className="bg-white shadow-md rounded-lg p-4 border border-gray-200">
                                         <h3 className="text-lg font-semibold mb-2">{trip.startLocation} → {trip.endLocation}</h3>
                                         <p><strong>Date:</strong> {new Date(trip.date).toLocaleDateString()}</p>
                                         <p><strong>Distance:</strong> {trip.distance} km</p>
                                         <p><strong>Price:</strong> Rs. {trip.price}</p>
                                         <p><strong>Vehicle:</strong> {trip.vehicleId?.brand} {trip.vehicleId?.model}</p>
-                                        <p className="mt-2"><strong>Status:</strong> <span className="text-blue-600">{trip.status}</span></p>
+                                        <p className="mt-2"><strong>Status:</strong> <span
+                                            className="text-blue-600">{trip.status}</span></p>
 
                                         <div className="flex justify-between mt-4 gap-2">
                                             <button
@@ -403,13 +446,15 @@ export function Trip() {
                             <h3 className="text-xl font-semibold mb-2 text-gray-700">Processing Trips</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {processingTrips.map(trip => (
-                                    <div key={trip._id} className="bg-white shadow-md rounded-lg p-4 border border-gray-200">
+                                    <div key={trip._id}
+                                         className="bg-white shadow-md rounded-lg p-4 border border-gray-200">
                                         <h3 className="text-lg font-semibold mb-2">{trip.startLocation} → {trip.endLocation}</h3>
                                         <p><strong>Date:</strong> {new Date(trip.date).toLocaleDateString()}</p>
                                         <p><strong>Distance:</strong> {trip.distance} km</p>
                                         <p><strong>Price:</strong> Rs. {trip.price}</p>
                                         <p><strong>Vehicle:</strong> {trip.vehicleId?.brand} {trip.vehicleId?.model}</p>
-                                        <p className="mt-2"><strong>Status:</strong> <span className="text-yellow-600">{trip.status}</span></p>
+                                        <p className="mt-2"><strong>Status:</strong> <span
+                                            className="text-yellow-600">{trip.status}</span></p>
 
                                         <div className="flex justify-end mt-4">
                                             <button

@@ -15,13 +15,13 @@ export function User() {
     const [previewImage, setPreviewImage] = useState<string | null>(null);
 
     useEffect(() => {
-        const token = localStorage.getItem("access_token");
+        const token = localStorage.getItem("accessToken");
         if (token) {
             const user = getUserFromToken(token);
             backendApi.get(`/api/v1/users/find-by-email/${user.email}`).then(res => {
                 setUserData(res.data);
                 if (res.data.profileImage) {
-                    setPreviewImage(`http://localhost:3000/uploads/users/${res.data.profileImage}`);
+                    setPreviewImage(`http://localhost:3000/uploads/profile/${res.data.profileImage}`);
                 }
             });
         }

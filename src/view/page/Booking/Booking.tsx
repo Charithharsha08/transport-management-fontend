@@ -41,24 +41,24 @@ export function Booking() {
             const email = getUserFromToken(accessToken)?.email;
             console.log("Email:", email);
 
-                dispatch(getUserByEmail(email))
-                    .unwrap()
-                    .then((userData) => {
-                        console.log("Fetched user:", userData);
-                        setUser(userData);
+            dispatch(getUserByEmail(email))
+                .unwrap()
+                .then((userData) => {
+                    console.log("Fetched user:", userData);
+                    setUser(userData);
 
-                        if (userData.role === "customer") {
-                            setBookingData((prev) => ({
-                                ...prev,
-                                customerId: userData._id,
-                            }));
-                        }
+                    if (userData.role === "customer") {
+                        setBookingData((prev) => ({
+                            ...prev,
+                            customerId: userData._id,
+                        }));
+                    }
 
-                        fetchBookings(userData);
-                    })
-                    .catch((err) => {
-                        console.error("Failed to fetch user by email:", err);
-                    });
+                    fetchBookings(userData);
+                })
+                .catch((err) => {
+                    console.error("Failed to fetch user by email:", err);
+                });
 
         }
     }, [dispatch]);
@@ -300,18 +300,23 @@ export function Booking() {
                         </td>
                         <td className="p-3">{booking.status}</td>
                         <td className="p-3 flex gap-2">
-                            <button
-                                onClick={() => handleEdit(booking)}
-                                className="bg-yellow-500 text-white px-3 py-1 rounded"
-                            >
-                                Update
-                            </button>
-                            <button
-                                onClick={() => handleCancelBooking(booking._id!)}
-                                className="bg-red-600 text-white px-3 py-1 rounded"
-                            >
-                                Cancel
-                            </button>
+                            {booking.status === "Pending" && (
+                                <>
+                                    <button
+                                        onClick={() => handleEdit(booking)}
+                                        className="bg-yellow-500 text-white px-3 py-1 rounded"
+                                    >
+                                        Update
+                                    </button>
+                                    <button
+                                        onClick={() => handleCancelBooking(booking._id!)}
+                                        className="bg-red-600 text-white px-3 py-1 rounded"
+                                    >
+                                        Cancel
+                                    </button>
+                                </>
+                            )}
+
                         </td>
                     </tr>
                 ))}
