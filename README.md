@@ -36,4 +36,4 @@ This is the frontend UI for the Transport Management System. It allows admins, d
    npm run dev
    ```
 
-The frontend will start on **[http://localhost:5173](http://localhost:5173)**
+The frontend will start on **[http://localhost:5173](http://localhost:5173)** (default)
