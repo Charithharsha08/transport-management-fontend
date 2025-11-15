@@ -2,8 +2,8 @@ import {Route, Routes, useNavigate} from "react-router-dom";
 import {DefaultLayout} from "./view/common/DefaultLayout/DefaultLayout.tsx";
 import {Login} from "./view/page/Login/Login.tsx";
 import {Register} from "./view/page/Register/Register.tsx";
-import {useEffect} from "react";
 import {isTokenExpired} from "./auth/auth.ts";
+import {useEffect} from "react";
 
 function App() {
 

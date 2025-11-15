@@ -6,14 +6,14 @@ import { setCredentials } from "../../../slices/authSlice.ts";
 import { getAllData } from "../../../slices/dashboardSlice.ts";
 import { DashboardCard } from "../../common/DashboardCard/DashboardCard.tsx";
 import { getAllUsers } from "../../../slices/UserSlices.ts";
-import type { UserData } from "../../../Model/userData.ts";
 import { backendApi } from "../../../api.ts";
+import { io } from "socket.io-client";
 
 export function Dashboard() {
     const dashboard = useSelector((state: RootState) => state.dashboard);
     const user = useSelector((state: RootState) => state.user);
     const dispatch = useDispatch<AppDispatch>();
-    const [userData, setUserData] = useState<UserData | null>(null);
+    const [initialLoading, setInitialLoading] = useState(true);
 
     useEffect(() => {
         const accessToken = localStorage.getItem("accessToken");
@@ -29,21 +29,58 @@ export function Dashboard() {
         }
     }, [dispatch]);
 
+
     useEffect(() => {
-        dispatch(getAllData());
-        dispatch(getAllUsers()).then((response) => {
-            if (response.payload) {
-                setUserData(response.payload);
-            }
+        Promise.all([
+            dispatch(getAllData()),
+            dispatch(getAllUsers())
+        ]).finally(() => {
+            setInitialLoading(false);
         });
     }, [dispatch]);
+
+    useEffect(() => {
+        const socket = io("http://localhost:3000", {
+            transports: ["websocket"],
+        });
+
+        console.log("trying to connect socket...");
+
+        socket.on("connect", () => console.log("Socket connected"));
+
+        socket.on("mongo-change:users", () => {
+            dispatch(getAllUsers());
+            dispatch(getAllData());
+        });
+
+        socket.on("mongo-change:bookings", () => {
+            dispatch(getAllData());
+        });
+
+        socket.on("mongo-change:trips", () => {
+            dispatch(getAllData());
+        });
+
+        socket.on("mongo-change:vehicles", () => {
+            dispatch(getAllData());
+        });
+
+        return () => {
+            socket.off("mongo-change:users");
+            socket.off("mongo-change:bookings");
+            socket.off("mongo-change:trips");
+            socket.off("mongo-change:vehicles");
+            socket.disconnect();
+        };
+    }, [dispatch]);
+
 
     const handleDelete = (user_id: string) => async () => {
         const confirmed = window.confirm("Are you sure you want to delete this user?");
         if (confirmed) {
             try {
                 await backendApi.delete(`/api/v1/users/delete/${user_id}`);
-                dispatch(getAllUsers()); // refresh user list
+                dispatch(getAllUsers());
             } catch (err) {
                 alert("Failed to delete user");
                 console.error(err);
@@ -51,9 +88,10 @@ export function Dashboard() {
         }
     };
 
-    if (dashboard.loading) {
+    if (initialLoading && dashboard.loading) {
         return <div className="text-center p-8 text-lg">Loading dashboard...</div>;
     }
+
 
     if (dashboard.error) {
         console.log("error", dashboard.error);
